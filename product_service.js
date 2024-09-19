@@ -5,6 +5,8 @@ const port = 3001;
 app.use(express.json());
 
 let products = {};
+let productCounter = 1;
+
 
 app.listen(port, () => {
     console.log(`It's alive on http://localhost:${port}`);
@@ -48,8 +50,8 @@ app.get('/products/:productId', (req, res) => {
 ------------------------------------------------*/
 
 app.post('/products', (req, res) => {
-    const productData = req.body;    
-    const productId = Object.keys(products).length + 1;
+    const productData = req.body;
+    const productId = productCounter++;   
     products[productId] = productData;
     const { name: productName } = productData;
 

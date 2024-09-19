@@ -5,19 +5,19 @@ const port = 3002;
 app.use(express.json());
 
 let customers = {};
-let customerIdCounter = 1;
+let customerCounter = 1;
 
 
 // CUSTOMER ROUTES
 // Adds a new customer
 app.post('/customers', (req, res) => {
     const customerData = req.body;
-    const customerId = customerIdCounter++;
+    const customerId = customerCounter++;
     customers[customerId] = customerData;
     return res.status(201).json({message: "Customer created successfully.", customer_id: customerId});
 });
 
-//
+// Gets all customers
 app.get('/customers/all', (req, res) => {
     if(customers.length == 0)
         return res.json({message: "No customers added in the list."});
@@ -37,13 +37,13 @@ app.get('/customers/:customerId', (req, res) => {
 
 // Updates customer information
 app.put('/customers/:customerId', (req, res) => {
-    const customerNewData = req.body;
+    const newCustomerData = req.body;
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
-    customers[customerId] = customerNewData;
+    customers[customerId] = newCustomerData;
     res.status(200).json({message: "Customer updated successfully."});
 });
 
