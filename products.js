@@ -70,12 +70,12 @@ app.post('/products', (req, res) => {
 });
 
 /*-----------------------------------------------
-    Post a new product with the ff format:
+    Updates a product with the ff format:
     http://localhost:3001/products/2
 ------------------------------------------------*/
 
 app.put('/products/:productId', (req, res) =>{
-    const productNewData = req.body;     
+    const newProductData = req.body;     
     const productId = req.params.productId;
     const product = products[productId];
 
@@ -83,7 +83,7 @@ app.put('/products/:productId', (req, res) =>{
         return res.status(404).json({error: "Product not found!"});
     }
 
-    products[productId] = productNewData;
+    products[productId] = newProductData;
     res.status(200).json({message: "Product updated successfully."});
 
 });
