@@ -14,7 +14,13 @@ app.post('/customers', (req, res) => {
     const customerData = req.body;
     const customerId = customerCounter++;
     customers[customerId] = customerData;
-    return res.status(201).json({message: "Customer created successfully.", customer_id: customerId});
+    const { name: customerName } = customerData;
+
+    return res.status(201).json({
+        message: `${customerName} Customer created successfully.`, 
+        customer_name: customerName,
+        customer_id: customerId,
+    });
 });
 
 // Gets all customers
