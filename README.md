@@ -27,13 +27,13 @@ cd 3103_Microservice
 npm install
 ```
 4. Run each services in different terminals
+```
+node customer_service
+```
+```
+node product_service
+```
+```
+node order_service
+```
 
-```
-node product_service.js
-```
-```
-node order_service.js
-```
-```
-node customer_service.js
-```
