@@ -46,14 +46,14 @@ node order_service
  - **PUT** `/products/:productId` — Update a product.
  - **DELETE** `/products/:productId` — Delete a product.
 2. Customer Service
- - POST `/customers`: Add a new customer.
- - GET `/customers/:customerId` — Get customer details by ID.
+ - **POST** `/customers`: Add a new customer.
+ - **GET** `/customers/:customerId` — Get customer details by ID.
  - **GET** `/customers/all` — Gets the list of all customers.
- - PUT `/customers/:customerId` — Update customer information.
- - DELETE `/customers/:customerId` — Delete a customer.
+ - **PUT** `/customers/:customerId` — Update customer information.
+ - **DELETE** `/customers/:customerId` — Delete a customer.
 3. Order Service
- - POST `/orders` — Create a new order.
- - GET `/orders/:orderId` — Get order details.
+ - **POST** `/orders` — Create a new order.
+ - **GET** `/orders/:orderId` — Get order details.
  - **GET** `/orders/all` — Gets the list of all orders.
- - PUT `/orders/:orderId` — Update an order.
- - DELETE `/orders/:orderId` — Delete an order.
+ - **PUT** `/orders/:orderId` — Update an order.
+ - **DELETE** `/orders/:orderId` — Delete an order.
