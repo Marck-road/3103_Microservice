@@ -1,5 +1,7 @@
 const express = require('express');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
+
 const app = express();
 const port = 3003;
 
@@ -7,7 +9,22 @@ app.use(express.json());
 
 let orders = {};
 let orderCounter = 1;
+const JWT_SECRET = 'yourSecretKey'; 
 
+function verifyToken(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) {
+        return res.status(403).json({ message: 'No token provided' });
+    }
+    const bearerToken = token.split(' ')[1]; // Extract the token
+    jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ message: 'Failed to authenticate token' });
+        }
+        req.user = decoded; // Attach decoded token info (like user id, role) to req
+        next(); // Proceed to the next middleware or route
+    });
+}
 
 // ORDER ROUTES
 
@@ -18,7 +35,7 @@ app.listen(port, () => {
 
 
 // Creates a new order
-app.post('/orders', async (req, res) => {
+app.post('/createOrder', verifyToken, async (req, res) => {
     const {customerId, productId, quantity} = req.body;
 
     try {
@@ -38,7 +55,7 @@ app.post('/orders', async (req, res) => {
 });
 
 //Get order details
-app.get('/orders/all', (req, res) => {
+app.get('/all', verifyToken, (req, res) => {
     if(!orders || Object.keys(orders).length == 0)
         return res.json({message: "No orders found!"});
     else
@@ -46,7 +63,7 @@ app.get('/orders/all', (req, res) => {
 });
 
 // Gets order details by ID
-app.get('/orders/:orderId', (req, res) => {
+app.get('/:orderId', verifyToken, (req, res) => {
     const orderId = req.params.orderId;
     const order = orders[orderId];
     if(!order){
@@ -59,7 +76,7 @@ app.get('/orders/:orderId', (req, res) => {
     Updates an order with the ff format:
     http://localhost:3003/orders/orderID
 ------------------------------------------------*/
-app.put('/orders/:orderId', (req, res) =>{
+app.put('/:orderId', verifyToken, (req, res) =>{
     const newOrderData = req.body;     
     const orderId = req.params.orderId;
     const order = orders[orderId];
@@ -77,7 +94,7 @@ app.put('/orders/:orderId', (req, res) =>{
     http://localhost:3003/orders/orderID
 ------------------------------------------------*/
 
-app.delete('/orders/:orderId', (req,res ) =>{
+app.delete('/:orderId', verifyToken, (req,res ) =>{
     const orderId = req.params.orderId;
     const order = orders[orderId];
 

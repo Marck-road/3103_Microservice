@@ -5,6 +5,23 @@ const port = 3002;
 
 app.use(express.json());
 
+const JWT_SECRET = 'yourSecretKey'; 
+
+function verifyToken(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) {
+        return res.status(403).json({ message: 'No token provided' });
+    }
+    const bearerToken = token.split(' ')[1]; // Extract the token
+    jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ message: 'Failed to authenticate token' });
+        }
+        req.user = decoded; // Attach decoded token info (like user id, role) to req
+        next(); // Proceed to the next middleware or route
+    });
+}
+
 const getUser = async(username) => {
     return {id: 123, password: "12345", username, role:'customer' };
 }
@@ -55,7 +72,7 @@ let customerCounter = 1;
 
 // CUSTOMER ROUTES
 // Adds a new customer
-app.post('/customers', (req, res) => {
+app.post('/createCustomer', verifyToken, (req, res) => {
     const customerData = req.body;
     const customerId = customerCounter++;
     customers[customerId] = customerData;
@@ -69,7 +86,7 @@ app.post('/customers', (req, res) => {
 });
 
 // Gets all customers
-app.get('/customers/all', (req, res) => {
+app.get('/all', verifyToken, (req, res) => {
     if(customers.length == 0)
         return res.json({message: "No customers added in the list."});
     else
@@ -77,7 +94,7 @@ app.get('/customers/all', (req, res) => {
 });
 
 // Gets customer details by ID
-app.get('/customers/:customerId', (req, res) => {
+app.get('/:customerId', verifyToken, (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){
@@ -87,7 +104,7 @@ app.get('/customers/:customerId', (req, res) => {
 });
 
 // Updates customer information
-app.put('/customers/:customerId', (req, res) => {
+app.put('/:customerId', verifyToken, (req, res) => {
     const newCustomerData = req.body;
     const customerId = req.params.customerId;
     const customer = customers[customerId];
@@ -99,7 +116,7 @@ app.put('/customers/:customerId', (req, res) => {
 });
 
 // Deletes a customer
-app.delete('/customers/:customerId', (req, res) => {
+app.delete('/:customerId', verifyToken, (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){

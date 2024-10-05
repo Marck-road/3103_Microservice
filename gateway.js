@@ -5,7 +5,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
 // Secret key for JWT
-const JWT_SECRET = 'your_secret_key';
+const JWT_SECRET = 'yourSecretKey';
 
 // Middleware to verify JWT tokens
 function verifyToken(req, res, next) {
@@ -29,20 +29,29 @@ const productServiceProxy = createProxyMiddleware({
     changeOrigin: true,
 });
 
-const orderServiceProxy = createProxyMiddleware({
-    target: 'http://localhost:3002', // URL of the order service
+const userServiceProxy = createProxyMiddleware({
+    target: 'http://localhost:3002', // URL of the user service
     changeOrigin: true,
 });
 
-const userServiceProxy = createProxyMiddleware({
-    target: 'http://localhost:3003', // URL of the user service
+const orderServiceProxy = createProxyMiddleware({
+    target: 'http://localhost:3003', // URL of the order service
     changeOrigin: true,
 });
+
+// const loginProxy = createProxyMiddleware({
+//     target: 'http://localhost:3002/login', // URL of the order service
+//     changeOrigin: true,
+// });
+
+
+app.post('/login', userServiceProxy); // Proxy the login request to the user service
 
 // Routes
 app.use('/products', verifyToken, productServiceProxy); // All /products routes go to product service
 app.use('/orders', verifyToken, orderServiceProxy); // All /orders routes go to order service
 app.use('/users', verifyToken, userServiceProxy); // All /users routes go to user service
+
 
 // Start the gateway server
 app.listen(3000, () => {
