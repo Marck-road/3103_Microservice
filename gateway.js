@@ -1,27 +1,8 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const verifyToken = require('./middleware/authMiddleware');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-
-// Secret key for JWT
-const JWT_SECRET = 'yourSecretKey';
-
-// Middleware to verify JWT tokens
-function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(403).json({ message: 'No token provided' });
-    }
-    const bearerToken = token.split(' ')[1]; // Extract the token
-    jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Failed to authenticate token' });
-        }
-        req.user = decoded;
-        next();
-    });
-}
 
 // Proxy options for microservices
 const productServiceProxy = createProxyMiddleware({
@@ -38,12 +19,6 @@ const orderServiceProxy = createProxyMiddleware({
     target: 'http://localhost:3003', // URL of the order service
     changeOrigin: true,
 });
-
-// const loginProxy = createProxyMiddleware({
-//     target: 'http://localhost:3002/login', // URL of the order service
-//     changeOrigin: true,
-// });
-
 
 app.post('/login', userServiceProxy); // Proxy the login request to the user service
 

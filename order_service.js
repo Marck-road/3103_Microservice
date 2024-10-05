@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const jwt = require('jsonwebtoken');
+const verifyToken = require('./middleware/authMiddleware');
 
 const app = express();
 const port = 3003;
@@ -9,22 +9,6 @@ app.use(express.json());
 
 let orders = {};
 let orderCounter = 1;
-const JWT_SECRET = 'yourSecretKey'; 
-
-function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(403).json({ message: 'No token provided' });
-    }
-    const bearerToken = token.split(' ')[1]; // Extract the token
-    jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Failed to authenticate token' });
-        }
-        req.user = decoded; // Attach decoded token info (like user id, role) to req
-        next(); // Proceed to the next middleware or route
-    });
-}
 
 // ORDER ROUTES
 

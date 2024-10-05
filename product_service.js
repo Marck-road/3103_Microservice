@@ -1,26 +1,10 @@
 const express = require('express');
 const app = express();
-const jwt = require('jsonwebtoken');
-const port = 3001;
+const verifyToken = require('./middleware/authMiddleware');
 
+const port = 3001;
 app.use(express.json());
 
-const JWT_SECRET = 'yourSecretKey'; 
-
-function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(403).json({ message: 'No token provided' });
-    }
-    const bearerToken = token.split(' ')[1]; // Extract the token
-    jwt.verify(bearerToken, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Failed to authenticate token' });
-        }
-        req.user = decoded; // Attach decoded token info (like user id, role) to req
-        next(); // Proceed to the next middleware or route
-    });
-}
 
 let products = {};
 let productCounter = 1;
