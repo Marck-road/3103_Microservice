@@ -7,9 +7,11 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
+// middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
 const { validateLoginInput, validateUserProfileInput, checkValidationResults } = require('./middleware/inputValidation');
+const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const sslOptions = {
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
@@ -49,7 +51,7 @@ function generateAccessToken(user){
 }
 
 //LOGIN ROUTE
-app.post('/login', validateLoginInput, checkValidationResults, async (req, res) => {
+app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async (req, res) => {
 
     const { username, password} = req.body;
     const user = await getUser(username);
@@ -82,7 +84,7 @@ let customerCounter = 1;
 
 // CUSTOMER ROUTES
 // Adds a new customer
-app.post('/createCustomer', verifyToken, authPage(["customer", "admin"]), validateLoginInput, checkValidationResults, (req, res) => {
+app.post('/createCustomer', verifyToken, authPage(["customer", "admin"]), validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
     const customerData = req.body;
     const customerId = customerCounter++;
     customers[customerId] = customerData;
@@ -96,7 +98,7 @@ app.post('/createCustomer', verifyToken, authPage(["customer", "admin"]), valida
 });
 
 // Gets all customers
-app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
+app.get('/all', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     if(customers.length == 0)
         return res.json({message: "No customers added in the list."});
     else
@@ -104,7 +106,7 @@ app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
 });
 
 // Gets customer details by ID
-app.get('/:customerId', verifyToken, authPage(["admin"]), (req, res) => {
+app.get('/:customerId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){
@@ -114,7 +116,7 @@ app.get('/:customerId', verifyToken, authPage(["admin"]), (req, res) => {
 });
 
 // Updates customer information
-app.put('/:customerId', verifyToken, authPage(["customer"]), verifyToken, (req, res) => {
+app.put('/:customerId', verifyToken, authPage(["customer", "admin"]), verifyToken, validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
     const newCustomerData = req.body;
     const customerId = req.params.customerId;
     const customer = customers[customerId];
@@ -126,7 +128,7 @@ app.put('/:customerId', verifyToken, authPage(["customer"]), verifyToken, (req, 
 });
 
 // Deletes a customer
-app.delete('/:customerId', authPage(["admin"]), verifyToken, (req, res) => {
+app.delete('/:customerId', authPage(["admin"]), verifyToken, rateLimit, (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){

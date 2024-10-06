@@ -3,6 +3,8 @@ const https = require('https')
 const axios = require('axios');
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
+const { validateNewOrdersInput, validateEditOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
+const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const app = express();
 const port = 3003;
@@ -40,7 +42,7 @@ let orderCounter = 1;
 
 //Get order details
 //for admins onlu
-app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
+app.get('/all', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     if(!orders || Object.keys(orders).length == 0)
         return res.json({message: "No orders found!"});
     else
@@ -49,7 +51,7 @@ app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
 
 // Gets order details by ID
 //for admins onlu
-app.get('/:orderId', verifyToken, authPage(["admin"]), (req, res) => {
+app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     const orderId = req.params.orderId;
     const order = orders[orderId];
     if(!order){
@@ -60,7 +62,7 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), (req, res) => {
 
 // Creates a new order
 //only for logged-on customers
-app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), async (req, res) => {
+app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), validateNewOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
     const {customerId, productId, quantity} = req.body;
     
     try {
@@ -97,7 +99,7 @@ app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), async (re
 ------------------------------------------------*/
 
 //for admins onlu
-app.put('/:orderId', verifyToken, authPage(["admin"]), (req, res) =>{
+app.put('/:orderId', verifyToken, authPage(["admin"]), validateEditOrdersInput, checkValidationResults, rateLimit, (req, res) =>{
     const newOrderData = req.body;     
     const orderId = req.params.orderId;
     const order = orders[orderId];
@@ -116,7 +118,7 @@ app.put('/:orderId', verifyToken, authPage(["admin"]), (req, res) =>{
 ------------------------------------------------*/
 
 //for admins onlu
-app.delete('/:orderId', verifyToken, authPage(["admin"]), (req,res ) =>{
+app.delete('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req,res ) =>{
     const orderId = req.params.orderId;
     const order = orders[orderId];
 
