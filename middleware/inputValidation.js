@@ -7,9 +7,9 @@ const validateLoginInput = [
 ];
 
 const validateUserProfileInput = [
-    body('name').notEmpty().withMessage('Username is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-    body('role').isIn(['admin', 'customer']).withMessage('User role must be either "admin" or "customer"'),
+    body('name').notEmpty().withMessage('Username is required').trim().escape(),
+    body('password').notEmpty().withMessage('Password is required').trim().escape(),
+    body('role').isIn(['admin', 'customer']).withMessage('User role must be either "admin" or "customer"').trim().escape(),
 ];
 
 const checkValidationResults = (req, res, next) => {

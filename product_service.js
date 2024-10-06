@@ -4,16 +4,30 @@ const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
 
 const port = 3001;
+
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
+const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
+};
+
 app.use(express.json());
+
+https.createServer(sslOptions, app).listen(port, () => {
+    console.log(`Product service running on https://localhost:${port}`);
+});
+
 
 
 let products = {};
 let productCounter = 1;
 
 
-app.listen(port, () => {
-    console.log(`It's alive on https://localhost:${port}`);
-});
+// app.listen(port, () => {
+//     console.log(`It's alive on https://localhost:${port}`);
+// });
 
 /*-----------------------------------------------
     Gets all products with the ff format:

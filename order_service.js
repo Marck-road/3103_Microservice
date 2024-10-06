@@ -7,12 +7,25 @@ const authPage = require('./middleware/rbacMiddleware');
 const app = express();
 const port = 3003;
 
+const fs = require('fs');
+const path = require('path');
+const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
+};
+
+app.use(express.json());
+
+https.createServer(sslOptions, app).listen(port, () => {
+    console.log(`Product service running on https://localhost:${port}`);
+});
+
+
 // Accept self-signed certificates
 const httpsAgent = new https.Agent({  
     rejectUnauthorized: false
 });
 
-app.use(express.json());
 
 let orders = {};
 let orderCounter = 1;
@@ -20,9 +33,10 @@ let orderCounter = 1;
 // ORDER ROUTES
 
 
-app.listen(port, () => {
-    console.log(`Server is listening on port ${port}`);
-});
+// app.use(express.json());
+// app.listen(port, () => {
+//     console.log(`Server is listening on port ${port}`);
+// });
 
 //Get order details
 //for admins onlu
