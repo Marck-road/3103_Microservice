@@ -12,7 +12,7 @@ const getUser = async(username) => {
 }
 
 // Gereates a JWT Token with user id and role
-function generateToken(user){
+function generateAccessToken(user){
     const payload = {
         id: user.id,
         role: user.role
@@ -38,7 +38,7 @@ app.post('/login', async (req, res) => {
     
     delete user.password;
 
-    const token = generateToken(user);
+    const token = generateAccessToken(user);
 
     // so that browser can keep track of it and sed that cookie when future requests
     res.cookie("token", token, {

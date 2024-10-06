@@ -19,6 +19,7 @@ app.listen(port, () => {
     http://localhost:3001/products/all
 ------------------------------------------------*/
 
+//for all users
 app.get('/all', verifyToken, (req, res) => {
     if(!products || Object.keys(products).length == 0){
         return res.status(404).json({error: "No product found!"});
@@ -35,6 +36,7 @@ app.get('/all', verifyToken, (req, res) => {
     http://localhost:3001/products/productID
 ------------------------------------------------*/
 
+//for all users
 app.get('/:productId', verifyToken, (req, res) => {
     const productId = req.params.productId;
     const product = products[productId];
@@ -51,6 +53,7 @@ app.get('/:productId', verifyToken, (req, res) => {
     http://localhost:3001/products
 ------------------------------------------------*/
 
+//for admins onlu
 app.post('/createProduct', verifyToken, (req, res) => {
     const productData = req.body;
     const productId = productCounter++;   
@@ -77,7 +80,7 @@ app.post('/createProduct', verifyToken, (req, res) => {
     Updates a product with the ff format:
     http://localhost:3001/products/2
 ------------------------------------------------*/
-
+//for admins onlu
 app.put('/:productId', verifyToken, (req, res) =>{
     const newProductData = req.body;     
     const productId = req.params.productId;
@@ -97,6 +100,7 @@ app.put('/:productId', verifyToken, (req, res) =>{
     http://localhost:3001/products/productID
 ------------------------------------------------*/
 
+//for admins onlu
 app.delete('/:productId', verifyToken, (req,res ) =>{
     const productId = req.params.productId;
     const product = products[productId];
