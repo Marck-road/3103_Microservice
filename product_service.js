@@ -12,7 +12,7 @@ let productCounter = 1;
 
 
 app.listen(port, () => {
-    console.log(`It's alive on http://localhost:${port}`);
+    console.log(`It's alive on https://localhost:${port}`);
 });
 
 /*-----------------------------------------------

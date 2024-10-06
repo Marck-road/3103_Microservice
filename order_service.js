@@ -1,10 +1,16 @@
 const express = require('express');
+const https = require('https')
 const axios = require('axios');
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
 
 const app = express();
 const port = 3003;
+
+// Accept self-signed certificates
+const httpsAgent = new https.Agent({  
+    rejectUnauthorized: false
+});
 
 app.use(express.json());
 
@@ -40,20 +46,23 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), (req, res) => {
 
 // Creates a new order
 //only for logged-on customers
-app.post('/createOrder', verifyToken, authPage(["customer"]), async (req, res) => {
+app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), async (req, res) => {
     const {customerId, productId, quantity} = req.body;
     
     try {
-        const customerResponse = await axios.get(`http://localhost:3000/users/${customerId}`,{
+        const customerResponse = await axios.get(`https://localhost:3000/users/${customerId}`,{
             headers: {
-                Authorization: req.headers['authorization'],  // Pass the original token
-            }
+                Authorization: req.headers['authorization'],  // Passing orig token
+            },
+            httpsAgent
         });
-        const productResponse = await axios.get(`http://localhost:3000/products/${productId}`,{
+        const productResponse = await axios.get(`https://localhost:3000/products/${productId}`,{
             headers: {
-                Authorization: req.headers['authorization'],  // Pass the original token
-            }
+                Authorization: req.headers['authorization'],  // Passing orig token
+            },
+            httpsAgent
         });
+
         const customerData = customerResponse.data;
         const productData = productResponse.data;
         const orderId = orderCounter++;   

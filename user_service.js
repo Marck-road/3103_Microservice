@@ -8,12 +8,16 @@ const authPage = require('./middleware/rbacMiddleware');
 
 app.use(express.json());
 
+app.listen(port, () => {
+    console.log(`Server is listening on port ${port}`);
+});
+
 const getUser = async(username) => {
     return {
         id: 123, 
         password: "12345", 
         username, 
-        role:'customer' 
+        role:'admin' 
     };
 }
 
@@ -118,6 +122,3 @@ app.delete('/:customerId', authPage(["admin"]), verifyToken, (req, res) => {
     res.status(200).json({message: "Customer deleted successfully."});
 });
 
-app.listen(port, () => {
-    console.log(`Server is listening on port ${port}`);
-});
