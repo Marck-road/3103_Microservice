@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const verifyToken = require('./middleware/authMiddleware');
+const authPage = require('./middleware/rbacMiddleware');
 
 const port = 3001;
 app.use(express.json());
@@ -20,7 +21,7 @@ app.listen(port, () => {
 ------------------------------------------------*/
 
 //for all users
-app.get('/all', verifyToken, (req, res) => {
+app.get('/all', verifyToken, authPage(["customer", "admin"]), (req, res) => {
     if(!products || Object.keys(products).length == 0){
         return res.status(404).json({error: "No product found!"});
     }
@@ -37,7 +38,7 @@ app.get('/all', verifyToken, (req, res) => {
 ------------------------------------------------*/
 
 //for all users
-app.get('/:productId', verifyToken, (req, res) => {
+app.get('/:productId', verifyToken, authPage(["customer", "admin"]), (req, res) => {
     const productId = req.params.productId;
     const product = products[productId];
 
@@ -53,8 +54,8 @@ app.get('/:productId', verifyToken, (req, res) => {
     http://localhost:3001/products
 ------------------------------------------------*/
 
-//for admins onlu
-app.post('/createProduct', verifyToken, (req, res) => {
+//for admins only
+app.post('/createProduct', verifyToken, authPage(["customer", "admin"]), (req, res) => {
     const productData = req.body;
     const productId = productCounter++;   
     products[productId] = productData;
@@ -80,8 +81,8 @@ app.post('/createProduct', verifyToken, (req, res) => {
     Updates a product with the ff format:
     http://localhost:3001/products/2
 ------------------------------------------------*/
-//for admins onlu
-app.put('/:productId', verifyToken, (req, res) =>{
+//for admins only
+app.put('/:productId', verifyToken, authPage(["admin"]), (req, res) =>{
     const newProductData = req.body;     
     const productId = req.params.productId;
     const product = products[productId];
@@ -100,8 +101,8 @@ app.put('/:productId', verifyToken, (req, res) =>{
     http://localhost:3001/products/productID
 ------------------------------------------------*/
 
-//for admins onlu
-app.delete('/:productId', verifyToken, (req,res ) =>{
+//for admins only
+app.delete('/:productId', verifyToken, authPage(["admin"]), (req,res ) =>{
     const productId = req.params.productId;
     const product = products[productId];
 

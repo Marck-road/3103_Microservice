@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const verifyToken = require('./middleware/authMiddleware');
+const authPage = require('./middleware/rbacMiddleware');
 
 const app = express();
 const port = 3003;
@@ -19,7 +20,7 @@ app.listen(port, () => {
 
 //Get order details
 //for admins onlu
-app.get('/all', verifyToken, (req, res) => {
+app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
     if(!orders || Object.keys(orders).length == 0)
         return res.json({message: "No orders found!"});
     else
@@ -28,7 +29,7 @@ app.get('/all', verifyToken, (req, res) => {
 
 // Gets order details by ID
 //for admins onlu
-app.get('/:orderId', verifyToken, (req, res) => {
+app.get('/:orderId', verifyToken, authPage(["admin"]), (req, res) => {
     const orderId = req.params.orderId;
     const order = orders[orderId];
     if(!order){
@@ -39,7 +40,7 @@ app.get('/:orderId', verifyToken, (req, res) => {
 
 // Creates a new order
 //only for logged-on customers
-app.post('/createOrder', verifyToken, async (req, res) => {
+app.post('/createOrder', verifyToken, authPage(["customer"]), async (req, res) => {
     const {customerId, productId, quantity} = req.body;
     
     try {
@@ -73,7 +74,7 @@ app.post('/createOrder', verifyToken, async (req, res) => {
 ------------------------------------------------*/
 
 //for admins onlu
-app.put('/:orderId', verifyToken, (req, res) =>{
+app.put('/:orderId', verifyToken, authPage(["admin"]), (req, res) =>{
     const newOrderData = req.body;     
     const orderId = req.params.orderId;
     const order = orders[orderId];
@@ -92,7 +93,7 @@ app.put('/:orderId', verifyToken, (req, res) =>{
 ------------------------------------------------*/
 
 //for admins onlu
-app.delete('/:orderId', verifyToken, (req,res ) =>{
+app.delete('/:orderId', verifyToken, authPage(["admin"]), (req,res ) =>{
     const orderId = req.params.orderId;
     const order = orders[orderId];
 

@@ -3,12 +3,18 @@ const express = require('express');
 const app = express();
 const port = 3002;
 const verifyToken = require('./middleware/authMiddleware');
+const authPage = require('./middleware/rbacMiddleware');
 
 
 app.use(express.json());
 
 const getUser = async(username) => {
-    return {id: 123, password: "12345", username, role:'customer' };
+    return {
+        id: 123, 
+        password: "12345", 
+        username, 
+        role:'customer' 
+    };
 }
 
 // Gereates a JWT Token with user id and role
@@ -47,6 +53,7 @@ app.post('/login', async (req, res) => {
 
     return res.status(200).json({
         message: "Login successful",
+        role: user.role,
         token: token
     })
     
@@ -57,7 +64,7 @@ let customerCounter = 1;
 
 // CUSTOMER ROUTES
 // Adds a new customer
-app.post('/createCustomer', verifyToken, (req, res) => {
+app.post('/createCustomer', verifyToken, authPage(["customer", "admin"]), (req, res) => {
     const customerData = req.body;
     const customerId = customerCounter++;
     customers[customerId] = customerData;
@@ -71,7 +78,7 @@ app.post('/createCustomer', verifyToken, (req, res) => {
 });
 
 // Gets all customers
-app.get('/all', verifyToken, (req, res) => {
+app.get('/all', verifyToken, authPage(["admin"]), (req, res) => {
     if(customers.length == 0)
         return res.json({message: "No customers added in the list."});
     else
@@ -79,7 +86,7 @@ app.get('/all', verifyToken, (req, res) => {
 });
 
 // Gets customer details by ID
-app.get('/:customerId', verifyToken, (req, res) => {
+app.get('/:customerId', verifyToken, authPage(["admin"]), (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){
@@ -89,7 +96,7 @@ app.get('/:customerId', verifyToken, (req, res) => {
 });
 
 // Updates customer information
-app.put('/:customerId', verifyToken, (req, res) => {
+app.put('/:customerId', verifyToken, authPage(["customer"]), verifyToken, (req, res) => {
     const newCustomerData = req.body;
     const customerId = req.params.customerId;
     const customer = customers[customerId];
@@ -101,7 +108,7 @@ app.put('/:customerId', verifyToken, (req, res) => {
 });
 
 // Deletes a customer
-app.delete('/:customerId', verifyToken, (req, res) => {
+app.delete('/:customerId', authPage(["admin"]), verifyToken, (req, res) => {
     const customerId = req.params.customerId;
     const customer = customers[customerId];
     if(!customer){
