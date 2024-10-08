@@ -23,18 +23,20 @@ app.use(express.json());
 https.createServer(sslOptions, app).listen(port, () => {
     console.log(`User Service running on https://localhost:${port}`);
 });
-// app.listen(port, () => {
-//     console.log(`Server is listening on port ${port}`);
-// });
+
 
 
 const getUser = async(username) => {
-    return {
-        id: "1", 
-        password: "12345", 
-        username, 
-        role:'admin' 
-    };
+    const userEntry = Object.entries(users).find(([id, user]) => user.username === username);
+    if (userEntry) {
+        const [id, user] = userEntry;
+        return {
+            id, 
+            username: user.username, 
+            password: user.password, 
+            role: user.role
+        };
+    }
 }
 
 // Gereates a JWT Token with user id and role
@@ -44,7 +46,6 @@ function generateAccessToken(user){
         role: user.role
     };
     
-    //security measurement and acts as the key to hit endpoints and ensure the user is correct user
     const token = jwt.sign(payload, 'yourSecretKey', { expiresIn: "1h" });
     
     return token;
@@ -54,11 +55,11 @@ function generateAccessToken(user){
 app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, async (req, res) => {
 
     const { username, password} = req.body;
-    const user = await getUser(username);
+    const user = await getUser(username, password);
 
     if (!user || user.password !== password){
         return res.status(403).json({
-            error: "invalid login",
+            error: "Invalid Login.",
         });
     }
     
@@ -66,7 +67,6 @@ app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, a
 
     const token = generateAccessToken(user);
 
-    // so that browser can keep track of it and sed that cookie when future requests
     res.cookie("token", token, {
         httpOnly: true,
     });
@@ -83,6 +83,13 @@ app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, a
 //REGISTER ROUTE
 app.post('/register', validateUserCredentials, checkValidationResults, (req, res) => {
     const userData = req.body;
+
+    const validateUsername = userData.username.toLowerCase();
+    const isUsernameTaken = Object.values(users).some(user => user.username.toLowerCase() === validateUsername);
+    if (isUsernameTaken) {
+        return res.status(400).json({error: `Username '${userData.username}' already exists.`});
+    }
+    
     userData.role = 'customer';
     const userId = userCounter++;
     users[userId] = userData;
@@ -90,27 +97,37 @@ app.post('/register', validateUserCredentials, checkValidationResults, (req, res
     
     return res.status(201).json({
         message: `Account '${userName}' successfully created.`,
-        user_name: userName,
         user_id: userId,
+        user_name: userName
     });
 });
 
-let users = {"1": {username: "Test1", password: "12345", role:'admin'}};
-// let users = {};
+
+let users = {"1": {username: "Test", password: "testing", role:'admin'}};
 let userCounter = 2;
 
+
 // CUSTOMER ROUTES
-// For admins only - Adds a new user: customer/admin
+// For admins only - Adds a new user: customer or admin
 app.post('/createUser', verifyToken, authPage(["admin"]), validateNewUserInput, checkValidationResults, rateLimit, (req, res) => {
     const userData = {username: req.body.username, password: "12345", role: req.body.role};
+
+    const validateUsername = userData.username.toLowerCase();
+    const isUsernameTaken = Object.values(users).some(user => user.username.toLowerCase() === validateUsername);
+
+    if (isUsernameTaken) {
+        return res.status(400).json({error: `Username '${userData.username}' already exists.`});
+    }
+
     const userId = userCounter++;
     users[userId] = userData;
-    const { username: userName } = userData;
+    const { username: userName, role: userRole } = userData;
 
     return res.status(201).json({
-        message: `Customer '${userName}' created successfully with an ID of ${userId}!`,
-        user_name: userName,
+        message: `Account created successfully with an ID of ${userId}!`,
         user_id: userId,
+        username: userName,
+        role: userRole
     });
 });
 
@@ -144,9 +161,17 @@ app.get('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess
     res.status(200).json({username: user.username, role: user.role});
 });
 
-// Updates customer information
+// Customers should only update their own details - Updates customer information
 app.put('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess, validateUserCredentials, checkValidationResults, rateLimit, (req, res) => {
-    const newuserData = req.body;
+    const newUserData = req.body;
+
+    const validateUsername = newUserData.username.toLowerCase();
+    const isUsernameTaken = Object.values(users).some(user => user.username.toLowerCase() === validateUsername);
+    
+    if (isUsernameTaken) {
+        return res.status(400).json({error: `Username '${newUserData.username}' already exists.`});
+    }
+
     const userId = req.params.userId;
     const customer = users[userId];
 
@@ -154,8 +179,8 @@ app.put('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess
         return res.status(404).json({error: "Customer not found."});
     }
 
-    users[userId].username = newuserData.username;
-    users[userId].password = newuserData.password;
+    users[userId].username = newUserData.username;
+    users[userId].password = newUserData.password;
     res.status(200).json({message: "Customer updated successfully."});
 });
 

@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 
 const validateUserCredentials = [
     body('username').notEmpty().withMessage('Username is required').trim().escape(),
-    body('password').notEmpty().withMessage('Password is required').trim().escape(),
+    body('password').notEmpty().withMessage('Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long.').trim().escape(),
 ];
 
 const validateNewUserInput = [
