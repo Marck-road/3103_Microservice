@@ -10,7 +10,7 @@ const path = require('path');
 // middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const { authPage, authUserAccess} = require('./middleware/rbacMiddleware');
-const { validateUserCredentials, validateUserProfileInput, checkValidationResults } = require('./middleware/inputValidation');
+const { validateUserCredentials, validateNewUserInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const sslOptions = {
@@ -101,7 +101,7 @@ let userCounter = 2;
 
 // CUSTOMER ROUTES
 // For admins only - Adds a new user: customer/admin
-app.post('/createUser', verifyToken, authPage(["admin"]), validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
+app.post('/createUser', verifyToken, authPage(["admin"]), validateNewUserInput, checkValidationResults, rateLimit, (req, res) => {
     const userData = {username: req.body.username, password: "12345", role: req.body.role};
     const userId = userCounter++;
     users[userId] = userData;
@@ -145,14 +145,17 @@ app.get('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess
 });
 
 // Updates customer information
-app.put('/:userId', verifyToken, authPage(["customer", "admin"]), validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
+app.put('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess, validateUserCredentials, checkValidationResults, rateLimit, (req, res) => {
     const newuserData = req.body;
     const userId = req.params.userId;
     const customer = users[userId];
+
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
-    users[userId] = newuserData;
+
+    users[userId].username = newuserData.username;
+    users[userId].password = newuserData.password;
     res.status(200).json({message: "Customer updated successfully."});
 });
 
@@ -160,9 +163,11 @@ app.put('/:userId', verifyToken, authPage(["customer", "admin"]), validateUserPr
 app.delete('/:userId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     const userId = req.params.userId;
     const customer = users[userId];
+
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
+
     delete users[userId];
     res.status(200).json({message: "Customer deleted successfully."});
 });

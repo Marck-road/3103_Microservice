@@ -60,7 +60,8 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => 
 
 // For logged-on customers only - Creates a new order
 app.post('/createOrder', verifyToken, authPage(["customer"]), validateNewOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
-    const {customerID, productID, quantity} = req.body;
+    const {productID, quantity} = req.body;
+    const customerID = req.user.id;
     
     try {
         const customerResponse = await axios.get(`https://localhost:3000/users/${customerID}`,{
@@ -80,7 +81,7 @@ app.post('/createOrder', verifyToken, authPage(["customer"]), validateNewOrdersI
         const productData = productResponse.data;
         const orderID = orderCounter++;   
         
-        orders[orderID] = {customerName: customerData.name, productName: productData.name, quantity};
+        orders[orderID] = {customerName: customerData.username, productName: productData.name, quantity};
         
         return res.status(201).json({message: "Order created successfully.", order_id: orderID});
     } catch (error) {

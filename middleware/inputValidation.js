@@ -2,11 +2,11 @@
 const { body, validationResult } = require('express-validator');
 
 const validateUserCredentials = [
-    body('username').notEmpty().withMessage('Username is required'),
-    body('password').notEmpty().withMessage('Password is required'),
+    body('username').notEmpty().withMessage('Username is required').trim().escape(),
+    body('password').notEmpty().withMessage('Password is required').trim().escape(),
 ];
 
-const validateUserProfileInput = [
+const validateNewUserInput = [
     body('username').notEmpty().withMessage('Username is required').trim().escape(),
     body('role').isIn(['admin', 'customer']).withMessage("User role must be either 'admin' or 'customer'").trim().escape(),
 ];
@@ -16,7 +16,6 @@ const validateProductInput = [
 ];
 
 const validateNewOrdersInput = [
-    body('customerID').notEmpty().withMessage('Customer ID is required').trim().escape(),
     body('productID').notEmpty().withMessage('Product ID is required').trim().escape(),
     body('quantity').notEmpty().withMessage('Product Quantity is required').trim().escape(),
 ];
@@ -41,7 +40,7 @@ const checkValidationResults = (req, res, next) => {
 
 module.exports = {
     validateUserCredentials,
-    validateUserProfileInput,
+    validateNewUserInput,
     validateProductInput,
     validateNewOrdersInput,
     validateEditOrdersInput,
