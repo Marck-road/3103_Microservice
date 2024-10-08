@@ -10,7 +10,7 @@ const path = require('path');
 // middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
-const { validateLoginInput, validateUserProfileInput, checkValidationResults } = require('./middleware/inputValidation');
+const { validateUserCredentials, validateUserProfileInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const sslOptions = {
@@ -51,7 +51,7 @@ function generateAccessToken(user){
 }
 
 //LOGIN ROUTE
-app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async (req, res) => {
+app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, async (req, res) => {
 
     const { username, password} = req.body;
     const user = await getUser(username);
@@ -79,36 +79,63 @@ app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async 
     
 });
 
-let customers = {};
-let customerCounter = 1;
-
-// CUSTOMER ROUTES
-// Adds a new customer
-app.post('/createCustomer', verifyToken, authPage(["customer", "admin"]), validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
-    const customerData = req.body;
-    const customerId = customerCounter++;
-    customers[customerId] = customerData;
-    const { name: customerName } = customerData;
-
+//REGISTER ROUTE
+app.post('/register', validateUserCredentials, checkValidationResults, (req, res) => {
+    const userData = req.body;
+    userData.role = 'customer';
+    const userId = userCounter++;
+    users[userId] = userData;
+    const { username: userName } = userData;
+    
     return res.status(201).json({
-        message: `${customerName} Customer created successfully.`, 
-        customer_name: customerName,
-        customer_id: customerId,
+        message: `Account '${userName}' successfully created.`,
+        user_name: userName,
+        user_id: userId,
     });
 });
 
-// Gets all customers
+////// TAGDA NIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+// let users = {"1": {username: "Test1", password: "12345", role:'admin'}};
+let users = {};
+let userCounter = 2;
+
+// CUSTOMER ROUTES
+// Admin side - Adds a new user - customer/admin
+app.post('/createUser', verifyToken, authPage(["admin"]), validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
+    const userData = {username: req.body.username, password: "12345", role: req.body.role};
+    const userId = userCounter++;
+    users[userId] = userData;
+    const { username: userName } = userData;
+
+    return res.status(201).json({
+        message: `Customer '${userName}' created successfully with an ID of ${userId}!`,
+        user_name: userName,
+        user_id: userId,
+    });
+});
+
+// Gets all users
 app.get('/all', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
-    if(customers.length == 0)
-        return res.json({message: "No customers added in the list."});
-    else
-        res.json(customers);
+    if(!users || Object.keys(users).length == 0){
+        return res.status(200).json({message: "No users added in the list."});
+    }
+
+    let userList = Object.keys(users).reduce((acc, key) => {
+        let { password, ...userList } = users[key];
+        acc[key] = userList;
+        return acc;
+    }, {});
+
+    res.status(200).send({
+        message: 'List of all users',
+        users: userList
+    });
 });
 
 // Gets customer details by ID
-app.get('/:customerId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
-    const customerId = req.params.customerId;
-    const customer = customers[customerId];
+app.get('/:userId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
+    const userId = req.params.userId;
+    const customer = users[userId];
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
@@ -116,25 +143,25 @@ app.get('/:customerId', verifyToken, authPage(["admin"]), rateLimit, (req, res) 
 });
 
 // Updates customer information
-app.put('/:customerId', verifyToken, authPage(["customer", "admin"]), verifyToken, validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
-    const newCustomerData = req.body;
-    const customerId = req.params.customerId;
-    const customer = customers[customerId];
+app.put('/:userId', verifyToken, authPage(["customer", "admin"]), verifyToken, validateUserProfileInput, checkValidationResults, rateLimit, (req, res) => {
+    const newuserData = req.body;
+    const userId = req.params.userId;
+    const customer = users[userId];
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
-    customers[customerId] = newCustomerData;
+    users[userId] = newuserData;
     res.status(200).json({message: "Customer updated successfully."});
 });
 
 // Deletes a customer
-app.delete('/:customerId', authPage(["admin"]), verifyToken, rateLimit, (req, res) => {
-    const customerId = req.params.customerId;
-    const customer = customers[customerId];
+app.delete('/:userId', authPage(["admin"]), verifyToken, rateLimit, (req, res) => {
+    const userId = req.params.userId;
+    const customer = users[userId];
     if(!customer){
         return res.status(404).json({error: "Customer not found."});
     }
-    delete customers[customerId];
+    delete users[userId];
     res.status(200).json({message: "Customer deleted successfully."});
 });
 

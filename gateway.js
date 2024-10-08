@@ -38,6 +38,8 @@ const orderServiceProxy = createProxyMiddleware({
 });
 
 app.post('/login', userServiceProxy); // Proxy the login request to the user service
+app.post('/register', userServiceProxy); // Proxy the register request to the user service
+
 
 // Routes
 app.use('/products', verifyToken, productServiceProxy); // All /products routes go to product service

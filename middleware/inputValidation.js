@@ -1,14 +1,14 @@
 // middleware/inputValidation.js
 const { body, validationResult } = require('express-validator');
 
-const validateLoginInput = [
+const validateUserCredentials = [
     body('username').notEmpty().withMessage('Username is required'),
     body('password').notEmpty().withMessage('Password is required'),
 ];
 
 const validateUserProfileInput = [
-    body('name').notEmpty().withMessage('Username is required').trim().escape(),
-    body('role').isIn(['admin', 'customer']).withMessage('User role must be either "admin" or "customer"').trim().escape(),
+    body('username').notEmpty().withMessage('Username is required').trim().escape(),
+    body('role').isIn(['admin', 'customer']).withMessage("User role must be either 'admin' or 'customer'").trim().escape(),
 ];
 
 const validateProductInput = [
@@ -40,7 +40,7 @@ const checkValidationResults = (req, res, next) => {
 
 
 module.exports = {
-    validateLoginInput,
+    validateUserCredentials,
     validateUserProfileInput,
     validateProductInput,
     validateNewOrdersInput,
