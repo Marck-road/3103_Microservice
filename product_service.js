@@ -3,7 +3,7 @@ const app = express();
 
 // middlewares
 const verifyToken = require('./middleware/authMiddleware');
-const authPage = require('./middleware/rbacMiddleware');
+const { authPage } = require('./middleware/rbacMiddleware');
 const { validateProductInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
