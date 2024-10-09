@@ -7,5 +7,31 @@ const failedAuthCounter = new client.Counter({
     labelNames: ['method', 'path'],
 });
 
-// Export the counter to be used in other files
-module.exports = { failedAuthCounter }; 
+// Create a counter for rate-limited requests 
+const rateLimitCounter = new client.Counter({
+    name: 'rate_limited_requests_total',
+    help: 'Total number of requests that have been rate-limited asdasd',
+    labelNames: ['method', 'path'],
+});
+
+// Counter to track total requests
+const requestCounter = new client.Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests received',
+    labelNames: ['method', 'path'],
+});
+
+// A histogram for API request durations
+const apiRequestDuration = new client.Histogram({
+    name: 'api_request_duration_seconds',
+    help: 'Duration of API requests in seconds',
+    labelNames: ['method', 'route', 'status'], 
+    buckets: [0.1, 0.5, 1, 2, 5, 10], 
+});
+
+module.exports = { 
+    failedAuthCounter, 
+    rateLimitCounter, 
+    requestCounter,
+    apiRequestDuration
+}; 

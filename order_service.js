@@ -1,12 +1,13 @@
 const express = require('express');
 const https = require('https')
 const axios = require('axios');
+const client = require('prom-client');
+
+//midleware
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
 const { validateNewOrdersInput, validateEditOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
-const failedAuthCounter  = require('./middleware/metricsMiddleware'); 
-const client = require('prom-client');
 
 const app = express();
 const port = 3003;
@@ -36,6 +37,7 @@ const httpsAgent = new https.Agent({
 let orders = {};
 let orderCounter = 1;
 
+// Exposing metrics to prometheus
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 

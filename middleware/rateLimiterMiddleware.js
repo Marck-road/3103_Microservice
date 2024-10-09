@@ -1,17 +1,10 @@
 const rateLimit = require('express-rate-limit');
-const client = require('prom-client');
+const { rateLimitCounter } = require('./metricsMiddleware'); 
 
-// Create a counter for rate-limited requests
-const rateLimitCounter = new client.Counter({
-    name: 'rate_limited_requests_total',
-    help: 'Total number of requests that have been rate-limited asdasd',
-    labelNames: ['method', 'path'],
-});
-
-// Limit to 10 requests per hour
+// Limit to 50 requests per 15 mins
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 mins
-    max: 100, // Limit each IP to 10 requests per window
+    max: 50, // Limit each IP to 50 requests per window
     legacyHeaders: false,//disable the 'X-rateLimit-*' headers
     message: "Too many requests, please try again later.",
     handler: (req, res) => {

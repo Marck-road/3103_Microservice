@@ -81,6 +81,7 @@ app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async 
 let customers = {};
 let customerCounter = 1;
 
+// Exposing metrics to prometheus
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 

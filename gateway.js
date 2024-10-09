@@ -6,24 +6,10 @@ const client = require('prom-client');
 
 const verifyToken = require('./middleware/authMiddleware');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const limiter = require('./middleware/rateLimiterMiddleware');
+const { requestCounter } = require('./middleware/metricsMiddleware'); 
+const { apiRequestDuration } = require('./middleware/metricsMiddleware');
 
 const app = express();
-
-// Counter to track total requests
-const requestCounter = new client.Counter({
-    name: 'http_requests_total',
-    help: 'Total number of HTTP requests received',
-    labelNames: ['method', 'path'],
-});
-
-// Create a histogram for API request durations
-const apiRequestDuration = new client.Histogram({
-    name: 'api_request_duration_seconds',
-    help: 'Duration of API requests in seconds',
-    labelNames: ['method', 'route', 'status'], // Optional labels for more granularity
-    buckets: [0.1, 0.5, 1, 2, 5, 10], // Customize buckets as needed
-});
 
 // Loading SSL certificate
 const sslOptions = {
@@ -50,26 +36,32 @@ const orderServiceProxy = createProxyMiddleware({
     secure: false,
 });
 
-
 // Collect default metrics (e.g., memory usage, CPU usage)
 client.collectDefaultMetrics();
 
-// Increment counter with method and path
+// Increment counter for requests
 app.use((req, res, next) => {
     requestCounter.inc({ method: req.method, path: req.path }); 
     next();
 });
 
-app.use(limiter);
-
-app.post('/login', userServiceProxy); // Proxy the login request to the user service
+// Measure request duration
+app.use((req, res, next) => {
+    const start = apiRequestDuration.startTimer({ method: req.method, route: req.path });
+    next();
+    res.on('finish', () => {
+      start({ status: res.statusCode }); // Record the duration with status code
+    });
+});
 
 // Routes
+app.post('/login', userServiceProxy); // Proxy the login request to the user service
+
 app.use('/products', verifyToken, productServiceProxy); // All /products routes go to product service
 app.use('/orders', verifyToken, orderServiceProxy); // All /orders routes go to order service
 app.use('/users', verifyToken, userServiceProxy); // All /users routes go to user service
 
-// Expose /metrics endpoint for Prometheus
+// Exposing metrics to prometheus
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 

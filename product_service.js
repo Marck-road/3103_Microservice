@@ -1,5 +1,8 @@
 const express = require('express');
-const app = express();
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
+const client = require('prom-client');
 
 // middlewares
 const verifyToken = require('./middleware/authMiddleware');
@@ -7,10 +10,7 @@ const authPage = require('./middleware/rbacMiddleware');
 const { validateProductInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
-const client = require('prom-client');
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
+const app = express();
 const port = 3001;
 
 const sslOptions = {
@@ -29,6 +29,7 @@ https.createServer(sslOptions, app).listen(port, () => {
 let products = {};
 let productCounter = 1;
 
+// Exposing metrics to prometheus
 app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 
