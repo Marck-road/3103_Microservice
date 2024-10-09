@@ -7,16 +7,18 @@ const authPage = require('./middleware/rbacMiddleware');
 const { validateProductInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
+const client = require('prom-client');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-
 const port = 3001;
 
 const sslOptions = {
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
 };
+
+client.collectDefaultMetrics();
 
 app.use(express.json());
 
@@ -27,14 +29,17 @@ https.createServer(sslOptions, app).listen(port, () => {
 let products = {};
 let productCounter = 1;
 
-// app.listen(port, () => {
-//     console.log(`It's alive on https://localhost:${port}`);
-// });
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
 
-/*-----------------------------------------------
-    Gets all products with the ff format:
-    http://localhost:3001/products/all
-------------------------------------------------*/
+    try {
+        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
+        res.end(metrics); // Send the resolved metrics
+    } catch (error) {
+        console.error('Error generating metrics:', error);
+        res.status(500).end('Error generating metrics'); // Handle error
+    }
+});
 
 //for all users
 app.get('/all', verifyToken, authPage(["customer", "admin"]), rateLimit, (req, res) => {
