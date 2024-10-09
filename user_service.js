@@ -1,24 +1,25 @@
-const jwt = require("jsonwebtoken");
 const express = require('express');
-const app = express();
-const port = 3002;
-
+const jwt = require("jsonwebtoken");
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
-// middlewares
+// Middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const { authPage, authUserAccess} = require('./middleware/rbacMiddleware');
 const { validateUserCredentials, validateNewUserInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
+const app = express();
+app.use(express.json());
+
+const port = 3002;
+
+
 const sslOptions = {
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
 };
-
-app.use(express.json());
 
 https.createServer(sslOptions, app).listen(port, () => {
     console.log(`User Service running on https://localhost:${port}`);
@@ -27,7 +28,8 @@ https.createServer(sslOptions, app).listen(port, () => {
 
 
 const getUser = async(username) => {
-    const userEntry = Object.entries(users).find(([id, user]) => user.username === username);
+    const validateUsername = username.toLowerCase();
+    const userEntry = Object.entries(users).find(([id, user]) => user.username.toLowerCase() === validateUsername);
     if (userEntry) {
         const [id, user] = userEntry;
         return {
@@ -56,7 +58,6 @@ app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, a
 
     const { username, password} = req.body;
     const user = await getUser(username, password);
-
     if (!user || user.password !== password){
         return res.status(403).json({
             error: "Invalid Login.",
@@ -103,14 +104,14 @@ app.post('/register', validateUserCredentials, checkValidationResults, (req, res
 });
 
 
-let users = {"1": {username: "Test", password: "testing", role:'admin'}};
+let users = {"1": {username: "Test", password: "123123", role:'admin'}};
 let userCounter = 2;
 
 
 // CUSTOMER ROUTES
 // For admins only - Adds a new user: customer or admin
 app.post('/createUser', verifyToken, authPage(["admin"]), validateNewUserInput, checkValidationResults, rateLimit, (req, res) => {
-    const userData = {username: req.body.username, password: "12345", role: req.body.role};
+    const userData = {username: req.body.username, password: "123456", role: req.body.role};
 
     const validateUsername = userData.username.toLowerCase();
     const isUsernameTaken = Object.values(users).some(user => user.username.toLowerCase() === validateUsername);
@@ -164,24 +165,22 @@ app.get('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess
 // Customers should only update their own details - Updates customer information
 app.put('/:userId', verifyToken, authPage(["customer", "admin"]), authUserAccess, validateUserCredentials, checkValidationResults, rateLimit, (req, res) => {
     const newUserData = req.body;
+    const userId = req.params.userId;
 
-    const validateUsername = newUserData.username.toLowerCase();
-    const isUsernameTaken = Object.values(users).some(user => user.username.toLowerCase() === validateUsername);
-    
-    if (isUsernameTaken) {
-        return res.status(400).json({error: `Username '${newUserData.username}' already exists.`});
+    if(!users[userId]){
+        return res.status(404).json({error: "User not found."});
     }
 
-    const userId = req.params.userId;
-    const customer = users[userId];
+    const validateUsername = newUserData.username.toLowerCase();
+    const isUsernameTaken = Object.keys(users).some(id => users[id].username.toLowerCase() === validateUsername && id !== userId);
 
-    if(!customer){
-        return res.status(404).json({error: "Customer not found."});
+    if (isUsernameTaken) {
+        return res.status(400).json({ error: `Username '${newUserData.username}' already exists.` });
     }
 
     users[userId].username = newUserData.username;
     users[userId].password = newUserData.password;
-    res.status(200).json({message: "Customer updated successfully."});
+    res.status(200).json({message: "User account updated successfully."});
 });
 
 // For admins only - Deletes a customer
