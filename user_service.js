@@ -48,7 +48,7 @@ function generateAccessToken(user){
         role: user.role
     };
     
-    const token = jwt.sign(payload, 'yourSecretKey', { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.SECRET_TOKEN, { expiresIn: "1h" });
     
     return token;
 }
@@ -68,9 +68,7 @@ app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, a
 
     const token = generateAccessToken(user);
 
-    res.cookie("token", token, {
-        httpOnly: true,
-    });
+    res.cookie("token", token, {httpOnly: true,});
 
     return res.status(200).json({
         message: "Login successful",
