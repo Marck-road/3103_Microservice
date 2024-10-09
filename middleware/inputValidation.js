@@ -37,8 +37,6 @@ const checkValidationResults = (req, res, next) => {
     next();
 };
 
-
-
 module.exports = {
     validateLoginInput,
     validateUserProfileInput,

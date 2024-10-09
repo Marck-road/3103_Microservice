@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const express = require('express');
 const app = express();
 const port = 3002;
+const client = require('prom-client');
 
 const fs = require('fs');
 const https = require('https');
@@ -18,22 +19,12 @@ const sslOptions = {
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
 };
 
-app.use(express.json());
-
-https.createServer(sslOptions, app).listen(port, () => {
-    console.log(`User Service running on https://localhost:${port}`);
-});
-// app.listen(port, () => {
-//     console.log(`Server is listening on port ${port}`);
-// });
-
-
 const getUser = async(username) => {
     return {
         id: 123, 
         password: "12345", 
         username, 
-        role:'admin' 
+        role:'customer' 
     };
 }
 
@@ -49,6 +40,14 @@ function generateAccessToken(user){
     
     return token;
 }
+
+client.collectDefaultMetrics();
+
+app.use(express.json());
+
+https.createServer(sslOptions, app).listen(port, () => {
+    console.log(`User Service running on https://localhost:${port}`);
+});
 
 //LOGIN ROUTE
 app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async (req, res) => {
@@ -81,6 +80,19 @@ app.post('/login', validateLoginInput, checkValidationResults, rateLimit, async 
 
 let customers = {};
 let customerCounter = 1;
+
+// Exposing metrics to prometheus
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
+
+    try {
+        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
+        res.end(metrics); // Send the resolved metrics
+    } catch (error) {
+        console.error('Error generating metrics:', error);
+        res.status(500).end('Error generating metrics'); // Handle error
+    }
+});
 
 // CUSTOMER ROUTES
 // Adds a new customer

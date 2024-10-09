@@ -1,6 +1,9 @@
 const express = require('express');
 const https = require('https')
 const axios = require('axios');
+const client = require('prom-client');
+
+//midleware
 const verifyToken = require('./middleware/authMiddleware');
 const authPage = require('./middleware/rbacMiddleware');
 const { validateNewOrdersInput, validateEditOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
@@ -15,6 +18,8 @@ const sslOptions = {
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
 };
+
+client.collectDefaultMetrics();
 
 app.use(express.json());
 
@@ -32,13 +37,20 @@ const httpsAgent = new https.Agent({
 let orders = {};
 let orderCounter = 1;
 
+// Exposing metrics to prometheus
+app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
+
+    try {
+        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
+        res.end(metrics); // Send the resolved metrics
+    } catch (error) {
+        console.error('Error generating metrics:', error);
+        res.status(500).end('Error generating metrics'); // Handle error
+    }
+});
+
 // ORDER ROUTES
-
-
-// app.use(express.json());
-// app.listen(port, () => {
-//     console.log(`Server is listening on port ${port}`);
-// });
 
 //Get order details
 //for admins onlu
@@ -63,16 +75,16 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => 
 // Creates a new order
 //only for logged-on customers
 app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), validateNewOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
-    const {customerId, productId, quantity} = req.body;
+    const {customerID, productID, quantity} = req.body;
     
     try {
-        const customerResponse = await axios.get(`https://localhost:3000/users/${customerId}`,{
+        const customerResponse = await axios.get(`https://localhost:3000/users/${customerID}`,{
             headers: {
                 Authorization: req.headers['authorization'],  // Passing orig token
             },
             httpsAgent
         });
-        const productResponse = await axios.get(`https://localhost:3000/products/${productId}`,{
+        const productResponse = await axios.get(`https://localhost:3000/products/${productID}`,{
             headers: {
                 Authorization: req.headers['authorization'],  // Passing orig token
             },
