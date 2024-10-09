@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const https = require('https');
 const fs = require('fs');
@@ -56,6 +57,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.post('/login', userServiceProxy); // Proxy the login request to the user service
+app.post('/register', userServiceProxy); // Proxy the register request to the user service
+
 
 app.use('/products', verifyToken, productServiceProxy); // All /products routes go to product service
 app.use('/orders', verifyToken, orderServiceProxy); // All /orders routes go to order service

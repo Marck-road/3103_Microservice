@@ -1,19 +1,22 @@
 const express = require('express');
-const https = require('https')
 const axios = require('axios');
 const client = require('prom-client');
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
 
-//midleware
+// Middlewares
 const verifyToken = require('./middleware/authMiddleware');
-const authPage = require('./middleware/rbacMiddleware');
-const { validateNewOrdersInput, validateEditOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
+const { authPage } = require('./middleware/rbacMiddleware');
+const { validateOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const app = express();
+app.use(express.json());
+
 const port = 3003;
 
-const fs = require('fs');
-const path = require('path');
+
 const sslOptions = {
     key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
     cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem')),
@@ -21,17 +24,14 @@ const sslOptions = {
 
 client.collectDefaultMetrics();
 
-app.use(express.json());
-
 https.createServer(sslOptions, app).listen(port, () => {
     console.log(`Product service running on https://localhost:${port}`);
 });
 
-
-// Accept self-signed certificates
 const httpsAgent = new https.Agent({  
     rejectUnauthorized: false
 });
+
 
 
 let orders = {};
@@ -51,9 +51,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 // ORDER ROUTES
-
-//Get order details
-//for admins onlu
+// For admins only - Get order details
 app.get('/all', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     if(!orders || Object.keys(orders).length == 0)
         return res.json({message: "No orders found!"});
@@ -61,8 +59,7 @@ app.get('/all', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
         res.json(orders);
 });
 
-// Gets order details by ID
-//for admins onlu
+// For admins only - Gets order details by ID
 app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => {
     const orderId = req.params.orderId;
     const order = orders[orderId];
@@ -72,47 +69,52 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => 
     res.json(order);
 });
 
-// Creates a new order
-//only for logged-on customers
-app.post('/createOrder', verifyToken, authPage(["customer", "admin"]), validateNewOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
-    const {customerID, productID, quantity} = req.body;
+// For logged-on customers only - Creates a new order
+app.post('/createOrder', verifyToken, authPage(["customer"]), validateOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
+    const {productID, quantity} = req.body;
+    const customerID = req.user.id;
     
     try {
         const customerResponse = await axios.get(`https://localhost:3000/users/${customerID}`,{
             headers: {
-                Authorization: req.headers['authorization'],  // Passing orig token
+                Authorization: req.headers['authorization'],
             },
             httpsAgent
         });
         const productResponse = await axios.get(`https://localhost:3000/products/${productID}`,{
             headers: {
-                Authorization: req.headers['authorization'],  // Passing orig token
+                Authorization: req.headers['authorization'],
             },
             httpsAgent
         });
 
         const customerData = customerResponse.data;
         const productData = productResponse.data;
-        const orderId = orderCounter++;   
+        const orderID = orderCounter++;   
         
-        orders[orderId] = {customerName: customerData.name, productName: productData.name, quantity};
+        orders[orderID] = {
+            customerID: customerID, 
+            customerName: customerData.username, 
+            productID: productID, 
+            productName: productData.name, 
+            quantity
+        };
         
-        return res.status(201).json({message: "Order created successfully.", order_id: orderId});
+        return res.status(201).json({message: "Order created successfully.", order_id: orderID});
     } catch (error) {
+        let productError = '';
+        if(error.response.data.error === 'Product not found!'){
+            productError = ` ${error.response.data.error}`;
+        }
         console.error(`Error creating the order: ${error.message}`);
-        return res.status(400).json({error: "Error creating the order."});
+        return res.status(400).json({error: `Error creating the order.${productError}`});
     }
 });
 
 
-/*-----------------------------------------------
-    Updates an order with the ff format:
-    http://localhost:3003/orders/orderID
-------------------------------------------------*/
-
-//for admins onlu
-app.put('/:orderId', verifyToken, authPage(["admin"]), validateEditOrdersInput, checkValidationResults, rateLimit, (req, res) =>{
-    const newOrderData = req.body;     
+// For admins only - Update an order
+app.put('/:orderId', verifyToken, authPage(["admin"]), validateOrdersInput, checkValidationResults, rateLimit, async (req, res) =>{
+    const newOrderData = req.body; 
     const orderId = req.params.orderId;
     const order = orders[orderId];
 
@@ -120,16 +122,33 @@ app.put('/:orderId', verifyToken, authPage(["admin"]), validateEditOrdersInput, 
         return res.status(404).json({error: "Order not found!"});
     }
 
-    orders[orderId] = newOrderData;
-    res.status(200).json({message: "Order updated successfully."});
+    try {
+        const productResponse = await axios.get(`https://localhost:3000/products/${newOrderData.productID}`,{
+            headers: {
+                Authorization: req.headers['authorization'],
+            },
+            httpsAgent
+        });
+
+        const productData = productResponse.data;
+        
+        orders[orderId].productID = newOrderData.productID;
+        orders[orderId].productName = productData.name;
+        orders[orderId].quantity = newOrderData.quantity;
+                
+        return res.status(200).json({message: "Order updated successfully."});
+    } catch (error) {
+        let productError = '';
+        if(error.response.data.error === 'Product not found!'){
+            productError = ` ${error.response.data.error}`;
+        }
+        console.error(`Error updating the order: ${error.message}`);
+        return res.status(400).json({error: `Error updating the order.${productError}`});
+    }
 });
 
-/*-----------------------------------------------
-    Deletes an order using its ID with the ff format:
-    http://localhost:3003/orders/orderID
-------------------------------------------------*/
 
-//for admins onlu
+// For admins only - Delete an order
 app.delete('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req,res ) =>{
     const orderId = req.params.orderId;
     const order = orders[orderId];

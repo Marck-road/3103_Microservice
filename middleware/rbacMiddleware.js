@@ -20,4 +20,21 @@ const authPage = (permissions) => {
     };
 };
 
-module.exports = authPage;
+
+const authUserAccess = (req, res, next) => {
+    const userId = req.params.userId;
+    const currentUserID = req.user.id;
+    const currentUserRole = req.user.role;
+
+    if (currentUserRole !== 'admin' && currentUserID !== userId) {
+        return res.status(401).json("Unauthorized Access");
+    }
+
+    next();
+};
+
+
+module.exports = {
+    authPage,
+    authUserAccess,
+};
