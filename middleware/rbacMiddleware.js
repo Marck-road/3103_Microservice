@@ -1,5 +1,6 @@
 const { failedAuthCounter } = require('./metricsMiddleware'); 
 
+// Middleware for RBAC
 const authPage = (permissions) => {
     return (req, res, next) => {
         try {

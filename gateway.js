@@ -51,7 +51,7 @@ app.use((req, res, next) => {
     const start = apiRequestDuration.startTimer({ method: req.method, route: req.path });
     next();
     res.on('finish', () => {
-      start({ status: res.statusCode }); // Record the duration with status code
+        start({ status: res.statusCode }); // Record the duration with status code
     });
 });
 

@@ -8,7 +8,7 @@ const client = require('prom-client');
 // Middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const { authPage, authUserAccess} = require('./middleware/rbacMiddleware');
-const { validateUserCredentials, validateNewUserInput, checkValidationResults } = require('./middleware/inputValidation');
+const { validateUserCredentials, validateNewUserInput, checkValidationResults } = require('./middleware/inputValidationMiddleware');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const app = express();
@@ -42,7 +42,7 @@ const getUser = async(username) => {
     }
 }
 
-// Gereates a JWT Token with user id and role
+// Generates a JWT Token with user id and role
 function generateAccessToken(user){
     const payload = {
         id: user.id,
@@ -61,11 +61,11 @@ app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 
     try {
-        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
-        res.end(metrics); // Send the resolved metrics
+        const metrics = await client.register.metrics();
+        res.end(metrics);
     } catch (error) {
         console.error('Error generating metrics:', error);
-        res.status(500).end('Error generating metrics'); // Handle error
+        res.status(500).end('Error generating metrics');
     }
 });
 
@@ -89,8 +89,6 @@ app.post('/login', validateUserCredentials, checkValidationResults, rateLimit, a
 
     return res.status(200).json({
         message: "Login successful",
-        id: user.id,
-        role: user.role,
         token: token
     })
     

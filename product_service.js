@@ -7,7 +7,7 @@ const client = require('prom-client');
 // Middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const { authPage } = require('./middleware/rbacMiddleware');
-const { validateProductInput, checkValidationResults } = require('./middleware/inputValidation');
+const { validateProductInput, checkValidationResults } = require('./middleware/inputValidationMiddleware');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const app = express();
@@ -29,7 +29,7 @@ https.createServer(sslOptions, app).listen(port, () => {
 
 
 
-let products = {"1": {"name": "Hamburger"},"2": {"name": "Waffles"},"3": {"name": "Candy"}};
+let products = {"1": {"name": "Hamburger", "price": "40", "stock": "15"},"2": {"name": "Waffles", "price": "70", "stock": "5"},"3": {"name": "Fries", "price": "20", "stock": "20"}};
 let productCounter = 4;
 
 // Exposing metrics to prometheus
@@ -37,11 +37,11 @@ app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 
     try {
-        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
-        res.end(metrics); // Send the resolved metrics
+        const metrics = await client.register.metrics();
+        res.end(metrics);
     } catch (error) {
         console.error('Error generating metrics:', error);
-        res.status(500).end('Error generating metrics'); // Handle error
+        res.status(500).end('Error generating metrics');
     }
 });
 

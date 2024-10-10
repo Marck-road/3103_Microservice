@@ -8,7 +8,7 @@ const path = require('path');
 // Middlewares
 const verifyToken = require('./middleware/authMiddleware');
 const { authPage } = require('./middleware/rbacMiddleware');
-const { validateOrdersInput, checkValidationResults } = require('./middleware/inputValidation');
+const { validateNewOrdersInput, validateEditOrdersInput, checkValidationResults } = require('./middleware/inputValidationMiddleware');
 const rateLimit = require('./middleware/rateLimiterMiddleware');
 
 const app = express();
@@ -42,11 +42,11 @@ app.get('/metrics', async (req, res) => {
     res.set('Content-Type', client.register.contentType);
 
     try {
-        const metrics = await client.register.metrics(); // Wait for the metrics Promise to resolve
-        res.end(metrics); // Send the resolved metrics
+        const metrics = await client.register.metrics();
+        res.end(metrics);
     } catch (error) {
         console.error('Error generating metrics:', error);
-        res.status(500).end('Error generating metrics'); // Handle error
+        res.status(500).end('Error generating metrics');
     }
 });
 
@@ -70,8 +70,8 @@ app.get('/:orderId', verifyToken, authPage(["admin"]), rateLimit, (req, res) => 
 });
 
 // For logged-on customers only - Creates a new order
-app.post('/createOrder', verifyToken, authPage(["customer"]), validateOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
-    const {productID, quantity} = req.body;
+app.post('/createOrder', verifyToken, authPage(["customer"]), validateNewOrdersInput, checkValidationResults, rateLimit, async (req, res) => {
+    const {productID, quantity, payment_status} = req.body;
     const customerID = req.user.id;
     
     try {
@@ -90,14 +90,25 @@ app.post('/createOrder', verifyToken, authPage(["customer"]), validateOrdersInpu
 
         const customerData = customerResponse.data;
         const productData = productResponse.data;
+
+        if(parseInt(quantity, 10) > parseInt(productData.stock, 10)){
+            return res.status(400).json({
+                error: `Error creating the order. ${productData.name} has only ${productData.stock} in stock.`
+            });
+        }
+
         const orderID = orderCounter++;   
-        
+            
         orders[orderID] = {
             customerID: customerID, 
             customerName: customerData.username, 
-            productID: productID, 
-            productName: productData.name, 
-            quantity
+            order_details: {
+                productID: productID, 
+                productName: productData.name, 
+                quantity
+            },
+            payment_status,
+            delivery_status: "undelivered"
         };
         
         return res.status(201).json({message: "Order created successfully.", order_id: orderID});
@@ -113,38 +124,24 @@ app.post('/createOrder', verifyToken, authPage(["customer"]), validateOrdersInpu
 
 
 // For admins only - Update an order
-app.put('/:orderId', verifyToken, authPage(["admin"]), validateOrdersInput, checkValidationResults, rateLimit, async (req, res) =>{
+app.put('/:orderId', verifyToken, authPage(["admin"]), validateEditOrdersInput, checkValidationResults, rateLimit, async (req, res) =>{
     const newOrderData = req.body; 
     const orderId = req.params.orderId;
-    const order = orders[orderId];
 
-    if(!order){
+    if(!orders[orderId]){
         return res.status(404).json({error: "Order not found!"});
     }
 
-    try {
-        const productResponse = await axios.get(`https://localhost:3000/products/${newOrderData.productID}`,{
-            headers: {
-                Authorization: req.headers['authorization'],
-            },
-            httpsAgent
+    if(newOrderData.delivery_status === "delivered" && newOrderData.payment_status === "unpaid"){
+        return res.status(400).json({
+            error: "Order cannot be updated. Please ensure that payment has been made."
         });
-
-        const productData = productResponse.data;
-        
-        orders[orderId].productID = newOrderData.productID;
-        orders[orderId].productName = productData.name;
-        orders[orderId].quantity = newOrderData.quantity;
-                
-        return res.status(200).json({message: "Order updated successfully."});
-    } catch (error) {
-        let productError = '';
-        if(error.response.data.error === 'Product not found!'){
-            productError = ` ${error.response.data.error}`;
-        }
-        console.error(`Error updating the order: ${error.message}`);
-        return res.status(400).json({error: `Error updating the order.${productError}`});
     }
+
+    orders[orderId].payment_status = newOrderData.payment_status;
+    orders[orderId].delivery_status = newOrderData.delivery_status;
+            
+    return res.status(200).json({message: "Order updated successfully."});
 });
 
 

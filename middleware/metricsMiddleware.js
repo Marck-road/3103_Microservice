@@ -10,7 +10,7 @@ const failedAuthCounter = new client.Counter({
 // Create a counter for rate-limited requests 
 const rateLimitCounter = new client.Counter({
     name: 'rate_limited_requests_total',
-    help: 'Total number of requests that have been rate-limited asdasd',
+    help: 'Total number of requests that have been rate-limited',
     labelNames: ['method', 'path'],
 });
 
