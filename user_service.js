@@ -119,7 +119,7 @@ app.post('/register', validateUserCredentials, checkValidationResults, (req, res
 });
 
 
-let users = {"1": {username: "Test", password: "123123", role:'admin'}};
+let users = {"1": {username: "Gwyn", password: "123123", role:'admin'}};
 let userCounter = 2;
 
 
